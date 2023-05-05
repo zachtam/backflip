@@ -71,3 +71,4 @@ class Robot:
         anim = FuncAnimation(fig, f, frames=jps, interval=1, blit=True)
         
         plt.show()
+    
