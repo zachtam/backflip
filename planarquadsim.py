@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
+import matplotlib
 
 def unitvec(th):
     return np.array([[np.cos(th)],
@@ -51,11 +52,6 @@ class Robot:
 
     def goto(self, q):
         self.q_ = q
-    
-    def draw_frame(self, jp, ax):
-        ax.artists = []
-        ax.lines = [ax.lines[0]]
-        return [ax.scatter(jp[0], jp[1], c='y')] + ax.plot(jp[0], jp[1], c='m')
 
     def animate(self, qs):
         # qs should be nx4
@@ -64,10 +60,19 @@ class Robot:
             self.goto(q)
             jps.append(self.joint_positions(plotorder=True))
         fig, ax = plt.subplots(1,1)
-        f = lambda jp: self.draw_frame(jp, ax)
         ax.set_xlim(-1, 1)
         ax.set_ylim(-0.5, 1.5)
         ax.plot([-1, 1], [0, 0], c='k')
-        anim = FuncAnimation(fig, f, frames=jps, interval=1, blit=True)
+
+        lines = matplotlib.lines.Line2D([0], [0],
+            color='m', marker='o',
+            markerfacecolor='y', markeredgecolor='y')
+        ax.add_artist(lines)
+        
+        def draw_frame(jp):
+            lines.set_data(jp[0], jp[1])
+            return lines,
+        
+        anim = FuncAnimation(fig, draw_frame, frames=jps, interval=1, blit=True)
         
         plt.show()
