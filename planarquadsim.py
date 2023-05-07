@@ -40,18 +40,18 @@ class Robot:
         return self.q_[2]
     
     def joint_positions(self, plotorder=False):
-        back_hip = self.pos - self.com2back*unitvec(self.q_[2])
-        back_knee = back_hip + self.thigh_length*unitvec(self.q_[3])
-        back_foot = back_knee + self.shin_length*unitvec(self.q_[3] + self.q_[4])
-        front_hip = self.pos + self.com2front*unitvec(self.q_[2])
-        front_knee = front_hip + self.thigh_length*unitvec(self.q_[5])
-        front_foot = front_knee + self.shin_length*unitvec(self.q_[5] + self.q_[6])
+        back_hip = self.pos.reshape((2, 1)) - self.com2back*unitvec(self.q_[2])
+        back_knee = back_hip + self.thigh_length*unitvec(self.q_[2] + self.q_[3])
+        back_foot = back_knee + self.shin_length*unitvec(self.q_[2] + self.q_[3] + self.q_[4])
+        front_hip = self.pos.reshape((2, 1)) + self.com2front*unitvec(self.q_[2])
+        front_knee = front_hip + self.thigh_length*unitvec(self.q_[2] + self.q_[5])
+        front_foot = front_knee + self.shin_length*unitvec(self.q_[2] + self.q_[5] + self.q_[6])
         if plotorder:
             return np.hstack((back_foot, back_knee, back_hip, front_hip, front_knee, front_foot))
         return np.hstack((back_hip, back_knee, back_foot, front_hip, front_knee, front_foot))
 
     def goto(self, q):
-        self.q_ = q
+        self.q_ = np.array(q).reshape((7,))
 
     def animate(self, qs):
         # qs should be nx4
