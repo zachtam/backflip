@@ -2,8 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
 import matplotlib
+import casadi as cd
 
-def unitvec(th):
+def unitvec(th, casadi=False):
+    if casadi:
+        v = cd.MX(2, 1)
+        v[0, 0] = np.cos(th)
+        v[1, 0] = np.sin(th)
+        return v
     return np.array([[np.cos(th)],
                      [np.sin(th)]])
 
@@ -16,8 +22,12 @@ class Robot:
     com2back = 0.19 # dist from back hip to com along back
     com2front = body_length - com2back
 
-    def __init__(self, q=np.zeros(7)):
-        self.q_ = np.array(q).reshape((7,))
+    def __init__(self, q=np.zeros(7), casadi=False):
+        if casadi:
+            self.q_ = q
+        else:
+            self.q_ = np.array(q).reshape((7,))
+        self.casadi = casadi
 
     @property
     def q(self):
@@ -40,18 +50,23 @@ class Robot:
         return self.q_[2]
     
     def joint_positions(self, plotorder=False):
-        back_hip = self.pos.reshape((2, 1)) - self.com2back*unitvec(self.q_[2])
-        back_knee = back_hip + self.thigh_length*unitvec(self.q_[2] + self.q_[3])
-        back_foot = back_knee + self.shin_length*unitvec(self.q_[2] + self.q_[3] + self.q_[4])
-        front_hip = self.pos.reshape((2, 1)) + self.com2front*unitvec(self.q_[2])
-        front_knee = front_hip + self.thigh_length*unitvec(self.q_[2] + self.q_[5])
-        front_foot = front_knee + self.shin_length*unitvec(self.q_[2] + self.q_[5] + self.q_[6])
+        back_hip = self.pos.reshape((2, 1)) - self.com2back*unitvec(self.q_[2], self.casadi)
+        back_knee = back_hip + self.thigh_length*unitvec(self.q_[2] + self.q_[3], self.casadi)
+        back_foot = back_knee + self.shin_length*unitvec(self.q_[2] + self.q_[3] + self.q_[4], self.casadi)
+        front_hip = self.pos.reshape((2, 1)) + self.com2front*unitvec(self.q_[2], self.casadi)
+        front_knee = front_hip + self.thigh_length*unitvec(self.q_[2] + self.q_[5], self.casadi)
+        front_foot = front_knee + self.shin_length*unitvec(self.q_[2] + self.q_[5] + self.q_[6], self.casadi)
         if plotorder:
             return np.hstack((back_foot, back_knee, back_hip, front_hip, front_knee, front_foot))
-        return np.hstack((back_hip, back_knee, back_foot, front_hip, front_knee, front_foot))
+        if self.casadi:
+            return cd.horzcat(back_hip, back_knee, back_foot, front_hip, front_knee, front_foot).T
+        return np.hstack((back_hip, back_knee, back_foot, front_hip, front_knee, front_foot)).T
 
     def goto(self, q):
-        self.q_ = np.array(q).reshape((7,))
+        if self.casadi:
+            self.q_ = q
+        else:
+            self.q_ = np.array(q).reshape((7,))
 
     def animate(self, qs):
         # qs should be nx4
@@ -73,7 +88,7 @@ class Robot:
             lines.set_data(jp[0], jp[1])
             return lines,
         
-        anim = FuncAnimation(fig, draw_frame, frames=jps, interval=1, blit=True)
+        anim = FuncAnimation(fig, draw_frame, frames=jps, interval=20, blit=True)
         
         plt.show()
     
