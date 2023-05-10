@@ -9,9 +9,9 @@ foot_y = r.joint_positions()[2, 1]
 q0[1] = -foot_y
 # r.animate([q0])
 
-qT = [0, 0, -1.9*np.pi, -(9/16)*np.pi, (1/8)*np.pi, -(9/16)*np.pi, (1/8)*np.pi]
+qT = [0, 0, 1.99*np.pi, -(9/16)*np.pi, (1/8)*np.pi, -(9/16)*np.pi, (1/8)*np.pi]
 r.goto(qT)
-foot_y = r.joint_positions()[2, 1]
+foot_y = r.joint_positions()[5, 1]
 qT[1] = -foot_y
 # r.animate([qT])
 
@@ -68,17 +68,17 @@ opti.subject_to(-fk[2] <= mu*fk[3])
 for t in range(N+1):
     robot.goto(q[7*t:7*(t+1)])
     jps = robot.joint_positions()
-    # knees above ground
-    opti.subject_to(jps[1, 1] > 0)
-    opti.subject_to(jps[4, 1] > 0)
+    # joints above ground
+    opti.subject_to(jps[:, 1] > -1e-6)
+    opti.subject_to(jps[:, 1] > -1e-6)
     # front foot should not get too close to the rear foot/hip
     opti.subject_to(cd.norm_2(jps[5] - jps[2]) > 0.03) # SOC constraint
     opti.subject_to(cd.norm_2(jps[5] - jps[0]) > 0.03) # SOC constraint
-    # zero contact forces when foot not on the ground
-    opti.subject_to(cd.fabs(jps[2, 1] * fk[0, t]) < 1e-6) # ground position 0 or both of these contact forces 0
-    opti.subject_to(cd.fabs(jps[2, 1] * fk[1, t]) < 1e-6)
-    opti.subject_to(cd.fabs(jps[5, 1] * fk[2, t]) < 1e-6)
-    opti.subject_to(cd.fabs(jps[5, 1] * fk[3, t]) < 1e-6)
+    # # zero contact forces when foot not on the ground
+    # opti.subject_to(cd.fabs(jps[2, 1] * fk[0, t]) < 1e-6) # ground position 0 or both of these contact forces 0
+    # opti.subject_to(cd.fabs(jps[2, 1] * fk[1, t]) < 1e-6)
+    # opti.subject_to(cd.fabs(jps[5, 1] * fk[2, t]) < 1e-6)
+    # opti.subject_to(cd.fabs(jps[5, 1] * fk[3, t]) < 1e-6)
     # normal force >= fmin to prevent slipping
     opti.subject_to(1000*cd.fabs(jps[2, 1]) + fk[1, t] >= fmin)
     opti.subject_to(1000*cd.fabs(jps[5, 1]) + fk[3, t] >= fmin)
@@ -96,12 +96,12 @@ for t in range(N+1):
     # also equals d(dpos/dq * qdot)/dq * qdot
     back_foot_acceleration = cd.mtimes(cd.jacobian(cd.mtimes(cd.jacobian(jps[2], q), q_dot), q), q_dot)
     front_foot_acceleration = cd.mtimes(cd.jacobian(cd.mtimes(cd.jacobian(jps[5], q), q_dot), q), q_dot)
-    opti.subject_to(-1000*cd.fabs(jps[2, 1]) + cd.fabs(back_foot_acceleration) < 1e-6)
-    opti.subject_to(-1000*cd.fabs(jps[5, 1]) + cd.fabs(front_foot_acceleration) < 1e-6)
+    # opti.subject_to(-1000*cd.fabs(jps[2, 1]) + cd.fabs(back_foot_acceleration) < 1e-6)
+    # opti.subject_to(-1000*cd.fabs(jps[5, 1]) + cd.fabs(front_foot_acceleration) < 1e-6)
 
 # opti.subject_to(T>=0)
 
-# opti.set_initial(T, 1)
+opti.set_initial(q, np.linspace(q0, qT, N+1).reshape((-1, 1)))
 opti.solver('ipopt')
 try:
     sol = opti.solve()
@@ -113,5 +113,5 @@ qstar = opti.debug.value(q)
 for t in [0]: # range(N+1):
     r.goto(qstar[7*t:7*(t+1)])
     jps = r.joint_positions()
-    # print(jps)
+    print(jps)
 r.animate(qstar.reshape((-1, 7)))
