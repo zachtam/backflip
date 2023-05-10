@@ -75,8 +75,8 @@ class Robot:
             self.goto(q)
             jps.append(self.joint_positions(plotorder=True))
         fig, ax = plt.subplots(1,1)
-        ax.set_xlim(-1, 1)
-        ax.set_ylim(-0.5, 1.5)
+        ax.set_xlim(-2.5, 2.5)
+        ax.set_ylim(-0.5, 4.5)
         ax.plot([-1, 1], [0, 0], c='k')
 
         lines = matplotlib.lines.Line2D([0], [0],
