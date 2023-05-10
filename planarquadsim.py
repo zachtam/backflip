@@ -88,7 +88,7 @@ class Robot:
             lines.set_data(jp[0], jp[1])
             return lines,
         
-        anim = FuncAnimation(fig, draw_frame, frames=jps, interval=20, blit=True, repeat=False)
+        anim = FuncAnimation(fig, draw_frame, frames=jps, interval=100, blit=True, repeat=False)
         
         plt.show()
     

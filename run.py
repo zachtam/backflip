@@ -58,14 +58,14 @@ opti.subject_to(q_ddot[:7]==0) # Initial acceleration of the robot
 opti.subject_to(q[-7:]==qT) # Landing position as described in paper
 
 # unilateral constraint
-opti.subject_to(fk[1] > 0)
-opti.subject_to(fk[3] > 0)
+opti.subject_to(fk[1, :] >= 0)
+opti.subject_to(fk[3, :] >= 0)
 
 # ground reaction forces must be in friction cone
-opti.subject_to(fk[0] <= mu*fk[1])
-opti.subject_to(-fk[0] <= mu*fk[1])
-opti.subject_to(fk[2] <= mu*fk[3])
-opti.subject_to(-fk[2] <= mu*fk[3])
+opti.subject_to(fk[0, :] <= mu*fk[1, :])
+opti.subject_to(-fk[0, :] <= mu*fk[1, :])
+opti.subject_to(fk[2, :] <= mu*fk[3, :])
+opti.subject_to(-fk[2, :] <= mu*fk[3, :])
 
 D = cd.MX.zeros(7, 7)
 D[2, 2] = 1083/2500
@@ -87,18 +87,28 @@ for t in range(N):
     opti.subject_to(q[7*(t+1):7*(t+2)] == q[7*(t):7*(t+1)] + q_dot[7*(t):7*(t+1)]*dt + 0.5*q_ddot[7*(t):7*(t+1)]*dt*dt)
 
 for t in range(N+1):
+    # joint limits
+    # opti.subject_to(q[7*t+3] <= -(1/16)*np.pi)
+    # opti.subject_to(-(4/3)*np.pi <= q[7*t+3])
+    # opti.subject_to(q[7*t+4] <= (1/3)*np.pi)
+    # opti.subject_to(-(15/16)*np.pi <= q[7*t+4])
+    # opti.subject_to(q[7*t+5] <= (15/16)*np.pi)
+    # # opti.subject_to(0 <= q[7*t+5])
+    # opti.subject_to(q[7*t+6] <= (15/16)*np.pi)
+    # # opti.subject_to(0 <= q[7*t+6])
+
     robot.goto(q[7*t:7*(t+1)])
     jps = robot.joint_positions()
 
     J1 = cd.jacobian(jps[2, :], q)
     J2 = cd.jacobian(jps[5, :], q)
     # Dynamics
-    opti.subject_to(cd.mtimes(D, q_ddot[7*t:7*(t+1)])
-                  + cd.mtimes(C, q_dot[7*t:7*(t+1)])
-                  + G
-                  == cd.mtimes(B, u[:, t])
-                  + cd.mtimes(J1.T, fk[:2, t])[7*t:7*(t+1)]
-                  + cd.mtimes(J2.T, fk[2:, t])[7*t:7*(t+1)])
+    # opti.subject_to(cd.mtimes(D, q_ddot[7*t:7*(t+1)])
+    #               + cd.mtimes(C, q_dot[7*t:7*(t+1)])
+    #               + G
+    #               == cd.mtimes(B, u[:, t])
+    #               + cd.mtimes(J1.T, fk[:2, t])[7*t:7*(t+1)]
+    #               + cd.mtimes(J2.T, fk[2:, t])[7*t:7*(t+1)])
     # joints above ground
     opti.subject_to(jps[:, 1] > -1e-6)
     opti.subject_to(jps[:, 1] > -1e-6)
