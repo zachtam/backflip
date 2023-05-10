@@ -1,9 +1,19 @@
-syms x y q1 q2 q3 q4 qb x_dot y_dot q1_dot q2_dot q3_dot q4_dot qb_dot ;
+syms q1 q2 q3 q4 q1_dot q2_dot q3_dot q4_dot;
 
-q = [x;y;q1;q2;q3;q4;qb];
-dq =[x_dot;y_dot;q1_dot;q2_dot;q3_dot;q4_dot; qb_dot];
+
 
 q_act = [q1;q2;q3;q4];
+
+q1vec = [0;0;q1];
+q2vec = [0;0;q2];
+q3vec = [0;0;q3];
+q4vec = [0;0;q4];
+
+q1_dot_vec = [0;0;q1_dot];
+q2_dot_vec = [0;0;q2_dot];
+q3_dot_vec = [0;0;q3_dot];
+q4_dot_vec = [0;0;q4_dot];
+
 
 m = 3;
 g = 9.81;
@@ -14,18 +24,36 @@ l2_length = 3;
 l3_length = 3;
 l4_length = 3;
 
-lL = [x-half_body_length*cos(qb); y-half_body_length*sin(qb)];
-lR = [x+half_body_length*cos(qb); y+half_body_length*sin(qb)];
+qb = asin((l3_length*sin(q3) + l4_length*sin(q4) - l1_length*sin(q1) - l2_length*sin(q2))/(half_body_length *2));
 
-l1 = lL + [-l1_length*cos(q1); -l1_length*sin(q1)];
-l2 = l1 + [-l2_length*cos(q2); -l2_length*sin(q2)];
-l3 = lR + [-l3_length*cos(q3); -l3_length*sin(q3)];
-l4 = l3 + [-l4_length*cos(q4); -l4_length*sin(q4)];
+lL = [-half_body_length*cos(qb); -half_body_length*sin(qb);0];
+lR = [+half_body_length*cos(qb); +half_body_length*sin(qb);0];
+
+l1 = [-l1_length*cos(q1+qb); -l1_length*sin(q1+qb);0];
+l2 = [-l2_length*cos(q2+q1+qb); -l2_length*sin(q2+q1+qb);0];
+l3 = [-l3_length*cos(q3+q2+q1+qb); -l3_length*sin(q3+q2+q1+qb);0];
+l4 = [-l4_length*cos(q4+q3+q2+q1+qb); -l4_length*sin(q4+q3+q2+q1+qb);0];
+
+qb_vec = [0;0;qb];
+x = half_body_length*cos(qb) + l1_length*cos(q1) +l2_length*cos(q2);
+y = half_body_length*sin(qb) + l1_length*sin(q1) + l2_length*sin(q2);
+%pinv(skew(transpose(lL - lR)))
+qb_dot_vec = (pinv(skew(transpose(lL - lR))))*((skew(q3vec) * l3) + (skew(q4vec) * l4) - (skew(q1vec) * l1) - (skew(q2vec) * l2));
+vbod = 0 - (skew(qb_dot_vec)*lR) - (skew(q3_dot_vec) * l3) - (skew(q4_dot_vec)*l4);
+x_dot = vbod(1);
+y_dot = vbod(2);
+
+
+
 
 vbody = [x_dot; y_dot];
 
-T = 0.5*m*(norm(vbody)^2) + (1/24)*m*(half_body_length*2)*(qb_dot^2);
-U = m*g*y;
+qb_dot = qb_dot_vec(3);
+
+T = 0.5*m*(norm(vbody)^2) %+ (1/24)*m*(half_body_length*2)*(qb_dot^2)
+U = m*g*y
+q = [q1;q2;q3;q4];
+dq =[q1_dot;q2_dot; q3_dot; q4_dot];
 
 [D, C, G, B] = LagrangianDynamics(T, U, q, dq, q_act)
 
